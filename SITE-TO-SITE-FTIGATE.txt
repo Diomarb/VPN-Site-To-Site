@@ -1,0 +1,124 @@
+! ============================================================
+!  ISP - Cisco IOU
+! ============================================================
+
+enable
+configure terminal
+hostname ISP
+
+interface Ethernet0/0
+ description Hacia FortiGate-A Port1
+ ip address 10.11.85.66 255.255.255.252
+ no shutdown
+
+interface Ethernet0/1
+ description Hacia FortiGate-B Port1
+ ip address 10.11.85.69 255.255.255.252
+ no shutdown
+
+
+ip route 10.11.85.0   255.255.255.192 10.11.85.65
+ip route 10.11.85.128 255.255.255.192 10.11.85.70
+
+end
+write memory
+
+
+💻 PC1 (WebTerm detrás de FortiGate-A)
+
+
+ip addr flush dev eth0
+ip addr add 10.11.85.2/26 dev eth0
+ip link set eth0 up
+ip route add default via 10.11.85.1
+
+💻 PC2 (WebTerm detrás de FortiGate-B)
+
+ip addr flush dev eth0
+ip addr add 10.11.85.130/26 dev eth0
+ip link set eth0 up
+ip route add default via 10.11.85.129
+
+
+
+
+! ============================================================
+!  FortiGate-A - CLI inicial
+! ============================================================
+
+
+config system interface
+
+    
+    edit port1
+        set mode static
+        set ip 10.11.85.65 255.255.255.252
+        set allowaccess ping https ssh http
+        set description "WAN hacia ISP"
+    next
+
+
+    edit port2
+        set mode static
+        set ip 10.11.85.1 255.255.255.192
+        set allowaccess ping https ssh http
+        set description "LAN hacia SWA-PC1"
+    next
+
+end
+
+
+config router static
+    edit 1
+        set gateway 10.11.85.66
+        set device port1
+    next
+end
+
+! ── Verificar interfaces ──
+show system interface port1
+show system interface port2
+get router info routing-table all
+
+
+
+
+! ============================================================
+!  FortiGate-B - CLI inicial
+! ============================================================
+
+
+config system interface
+
+   
+    edit port1
+        set mode static
+        set ip 10.11.85.70 255.255.255.252
+        set allowaccess ping https ssh http
+        set description "WAN hacia ISP"
+    next
+
+    
+    edit port2
+        set mode static
+        set ip 10.11.85.129 255.255.255.192
+        set allowaccess ping https ssh http
+        set description "LAN hacia SWB-PC2"
+    next
+
+end
+
+
+config router static
+    edit 1
+        set gateway 10.11.85.69
+        set device port1
+    next
+end
+
+
+
+! ── Verificar interfaces ──
+show system interface port1
+show system interface port2
+get router info routing-table all
